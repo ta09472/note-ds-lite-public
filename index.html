@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Note DS Lite — 400자 퀵 노트</title>
+<meta name="description" content="단축키 한 번, 400자. 메뉴바에서 사는 가장 빠른 노트.">
+<style>
+  /* ── 앱과 동일한 DS 에셋/토큰 (src/renderer/src/globals.css 발췌) ── */
+  @font-face {
+    font-family: 'Galmuri11';
+    src: url('assets/Galmuri11.woff2') format('woff2');
+    font-weight: 400;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Galmuri11';
+    src: url('assets/Galmuri11-Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-display: swap;
+  }
+  :root {
+    /* DS 팔레트 — 앱 globals.css 원본 값 */
+    --ds-ink: #494949;
+    --ds-paper: #e3e3e3;
+    --ds-paper-line: #c3c3c3;
+    --ds-blue: #0059F3;
+    --ds-yellow: #FBD300;
+    --ds-orange: #e36100;
+    --sub: #6e6e73;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: "Galmuri11", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+      "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+    /* 픽토챗 종이 — paper 위 가로 괘선 */
+    background: repeating-linear-gradient(var(--ds-paper) 0 23px, var(--ds-paper-line) 23px 24px);
+    color: var(--ds-ink);
+    overflow-x: hidden;
+  }
+  ::selection { background: var(--ds-orange); color: #fff; }
+
+  /* 앱과 동일한 스크롤바 — 배경보다 살짝 밝은 회색, 트랙 투명 */
+  ::-webkit-scrollbar { width: 12px; height: 12px; }
+  ::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: #ededed;
+    border: 3px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover { background-color: #f7f7f7; }
+
+  /* ── DS 카드 표면 — 앱 .ds-pop 그대로: pictochat border-image + 계단 클립 ── */
+  .ds-pop {
+    border-style: solid;
+    border-width: 8px;
+    border-image: url('assets/pictochat_message_border.svg') 8;
+    border-radius: 0;
+    background: white;
+    image-rendering: pixelated;
+    clip-path: polygon(
+      8px 100%, 8px calc(100% - 2px), 6px calc(100% - 2px), 6px calc(100% - 4px),
+      4px calc(100% - 4px), 4px calc(100% - 6px), 2px calc(100% - 6px), 2px calc(100% - 8px),
+      0 calc(100% - 8px), 0 8px, 2px 8px, 2px 6px, 4px 6px, 4px 4px, 6px 4px, 6px 2px,
+      8px 2px, 8px 0, calc(100% - 8px) 0, calc(100% - 8px) 2px, calc(100% - 6px) 2px,
+      calc(100% - 6px) 4px, calc(100% - 4px) 4px, calc(100% - 4px) 6px, calc(100% - 2px) 6px,
+      calc(100% - 2px) 8px, 100% 8px, 100% calc(100% - 8px), calc(100% - 2px) calc(100% - 8px),
+      calc(100% - 2px) calc(100% - 6px), calc(100% - 4px) calc(100% - 6px),
+      calc(100% - 4px) calc(100% - 4px), calc(100% - 6px) calc(100% - 4px),
+      calc(100% - 6px) calc(100% - 2px), calc(100% - 8px) calc(100% - 2px), calc(100% - 8px) 100%
+    );
+  }
+  /* 퀵노트 카드처럼 하드 드롭섀도 — 클립을 따라가야 해서 래퍼에 filter */
+  .ds-shadow { filter: drop-shadow(4px 4px 0 rgba(0,0,0,.28)); }
+
+  /* ---------- reveal on scroll ---------- */
+  .reveal {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity .9s cubic-bezier(.16,1,.3,1), transform .9s cubic-bezier(.16,1,.3,1);
+  }
+  .reveal.in { opacity: 1; transform: none; }
+  .reveal[data-delay="1"] { transition-delay: .12s; }
+  .reveal[data-delay="2"] { transition-delay: .24s; }
+  .reveal[data-delay="3"] { transition-delay: .36s; }
+
+  /* ---------- nav — DS 하드보더 바 ---------- */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 24px;
+    background: var(--ds-paper);
+    border-bottom: 2px solid var(--ds-ink);
+  }
+  nav .logo { font-weight: 700; font-size: 17px; }
+  nav .right { display: flex; gap: 10px; align-items: center; }
+
+  /* ── DS 버튼 — ds.css `.ds-css button` 크롬 그대로:
+     회색 기본색 + button.png 텍스처(hard-light) + 2px 다크그레이 보더 + 모서리 2px 컷 ── */
+  .ds-btn {
+    display: inline-block; text-decoration: none; cursor: pointer;
+    font-family: inherit; font-weight: 700; color: #1d1d1f;
+    border: 2px solid var(--ds-ink); border-radius: 0;
+    background-color: #808080; /* --color-ds-button-default */
+    background-image: url('assets/button.png');
+    background-blend-mode: hard-light;
+    image-rendering: pixelated;
+    text-wrap: nowrap;
+    clip-path: polygon(
+      2px 100%, 2px calc(100% - 2px), 0 calc(100% - 2px), 0 2px, 2px 2px, 2px 0,
+      calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px, 100% calc(100% - 2px),
+      calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 100%
+    );
+  }
+  .ds-btn:active { background-image: url('assets/button_active.png'); }
+  /* 앱과 동일: ds-blue 버튼은 텍스처에 밝아진 블루 위 미드톤 블루 글자 */
+  .ds-btn.ds-blue { background-color: var(--ds-blue); color: #123ea8; }
+
+  nav a.cta { font-size: 13px; padding: 6px 14px; }
+  /* 언어 셀렉트 — 앱 .ds-pop select 그대로 (하드보더 + 픽셀 ▼) */
+  select#lang {
+    appearance: none;
+    font: inherit; font-size: 12px; color: var(--ds-ink);
+    border: 2px solid var(--ds-ink); border-radius: 0;
+    background:
+      url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="6"><path fill="black" d="M0 0h10v2H8v2H6v2H4V4H2V2H0z"/></svg>')
+      right 8px center / 10px 6px no-repeat white;
+    padding: 5px 26px 5px 8px;
+    image-rendering: pixelated;
+    cursor: pointer;
+  }
+  select#lang:focus-visible { outline: 2px solid var(--ds-orange); outline-offset: 0; }
+
+  /* ---------- hero ---------- */
+  .hero {
+    min-height: 100svh;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    text-align: center; padding: 120px 24px 80px;
+    position: relative;
+  }
+  .hero h1 {
+    font-size: clamp(34px, 6.4vw, 84px);
+    font-weight: 700; line-height: 1.18;
+  }
+  .hero h1 .accent { color: var(--ds-blue); }
+  .hero p.sub {
+    margin-top: 24px; font-size: clamp(15px, 2vw, 22px);
+    color: var(--sub);
+  }
+  .hero .scroll-hint {
+    position: absolute; bottom: 32px; font-size: 12px; color: var(--sub);
+    animation: bob 2.2s steps(2) infinite; /* 픽셀스럽게 스텝 애니메이션 */
+  }
+  @keyframes bob { 50% { transform: translateY(6px); } }
+
+  /* hero mock — 앱 퀵노트 카드 재현 (pictochat 프레임) */
+  .mock {
+    margin-top: 64px;
+    width: min(460px, 88vw);
+    text-align: left;
+  }
+  .mock .inner { padding: 16px; }
+  @supports (animation-timeline: view()) {
+    .mock {
+      animation: mock-out linear both;
+      animation-timeline: view();
+      animation-range: exit 0% exit 100%;
+    }
+    @keyframes mock-out { to { transform: scale(.92) translateY(-24px); opacity: .2; } }
+  }
+  .mock .note { font-size: 15px; line-height: 1.7; min-height: 96px; color: #1d1d1f; }
+  .mock .note .caret {
+    display: inline-block; width: 7px; height: 1.05em; background: var(--ds-ink);
+    vertical-align: -2px; animation: blink 1s steps(1) infinite; /* 블록 캐럿 */
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  /* 글자수 게이지 — 앱 CharGoalBar: 검정 스캔라인 패널 + 옐로 도트 */
+  .mock .counter {
+    margin-top: 14px; display: flex; align-items: center; gap: 10px;
+    font-size: 12px; color: var(--sub); font-variant-numeric: tabular-nums;
+  }
+  .mock .bar {
+    flex: 1; height: 14px; padding: 3px;
+    background: repeating-linear-gradient(#000 0, #000 2px, var(--ds-ink) 2px, var(--ds-ink) 4px);
+    border: 2px solid var(--ds-ink);
+  }
+  .mock .bar b {
+    display: block; height: 100%; width: 18%;
+    background: var(--ds-yellow);
+    -webkit-mask: repeating-linear-gradient(90deg, #000 0 5px, transparent 5px 8px);
+            mask: repeating-linear-gradient(90deg, #000 0 5px, transparent 5px 8px);
+    transition: width .3s steps(6);
+  }
+
+  /* ---------- big statement (sticky pin) ---------- */
+  .pin-wrap { height: 260vh; position: relative; }
+  .pin {
+    position: sticky; top: 0; height: 100svh;
+    display: flex; align-items: center; justify-content: center;
+    text-align: center; padding: 0 24px; overflow: hidden;
+  }
+  .pin h2 {
+    font-size: clamp(28px, 5.4vw, 72px);
+    font-weight: 700; line-height: 1.3;
+    max-width: 18ch;
+  }
+  .pin h2 .word { display: inline-block; opacity: .12; transition: opacity .35s; }
+  .pin h2 .word.lit { opacity: 1; }
+
+  /* ---------- features ---------- */
+  section.features { padding: 12vh 24px 8vh; max-width: 1080px; margin: 0 auto; }
+  .features .head, .flow .head { text-align: center; margin-bottom: 72px; }
+  .features .head h2, .flow .head h2 { font-size: clamp(26px, 4vw, 48px); font-weight: 700; }
+  .features .head p, .flow .head p { margin-top: 14px; color: var(--sub); font-size: 16px; }
+  .grid {
+    display: grid; gap: 24px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+  .card .inner { padding: 24px 20px; }
+  .card { display: flex; flex-direction: column; transition: transform .2s steps(2); }
+  .card .ds-pop { flex: 1; } /* 같은 줄 카드 높이 통일 */
+  .card:hover { transform: translate(-2px, -2px); }
+  /* 픽셀 아이콘 — 이모지 대신 잉크색 crispEdges SVG / Galmuri 글리프 */
+  .card .icon { height: 30px; display: flex; align-items: flex-end; color: #1d1d1f; }
+  .card .icon svg { shape-rendering: crispEdges; fill: currentColor; }
+  .card .icon .txt { font-weight: 700; font-size: 20px; line-height: 1; }
+  .card h3 { margin: 14px 0 8px; font-size: 17px; font-weight: 700; color: #1d1d1f; }
+  .card p { color: var(--sub); font-size: 13px; line-height: 1.7; }
+
+  /* ---------- flow — 퀵노트 → 배경 → 본문 → 그리기 ---------- */
+  section.flow { padding: 8vh 24px 14vh; max-width: 1080px; margin: 0 auto; }
+  /* 스텝 = 큰 영상(pictochat 프레임) + 아래 캡션 — 세로 스택 */
+  .steps { display: flex; flex-direction: column; gap: 72px; max-width: 880px; margin: 0 auto; }
+  .step .demo .inner { padding: 6px; }
+  .step .demo video { display: block; width: 100%; }
+  .step .meta { display: flex; align-items: baseline; gap: 12px; margin-top: 16px; }
+  .step .no {
+    flex-shrink: 0; font-weight: 700; font-size: 12px;
+    color: #fff; background: var(--ds-ink); padding: 2px 8px;
+  }
+  .step h3 { font-size: 17px; font-weight: 700; color: #1d1d1f; white-space: nowrap; }
+  .step p { color: var(--sub); font-size: 13px; line-height: 1.7; }
+
+  /* ---------- 400 — 도트매트릭스 패널 (앱 wm-dotmatrix 스타일) ---------- */
+  .four {
+    padding: 20vh 24px; text-align: center;
+    background: repeating-linear-gradient(#000 0, #000 2px, #1a1a1a 2px, #1a1a1a 4px);
+    color: #fff;
+    border-top: 2px solid var(--ds-ink); border-bottom: 2px solid var(--ds-ink);
+  }
+  .four .num {
+    font-size: clamp(80px, 16vw, 220px); font-weight: 700; line-height: 1;
+    color: var(--ds-yellow);
+    text-shadow: 4px 4px 0 rgba(0,0,0,.6);
+  }
+  .four p { margin-top: 24px; font-size: clamp(14px, 1.8vw, 20px); color: rgba(255,255,255,.65); max-width: 36ch; margin-inline: auto; line-height: 1.8; }
+
+  /* ---------- download ---------- */
+  .dl { padding: 22vh 24px; text-align: center; }
+  .dl h2 { font-size: clamp(26px, 4.6vw, 56px); font-weight: 700; }
+  .dl p { margin-top: 16px; color: var(--sub); font-size: 16px; }
+  .dl .btns { margin-top: 40px; display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+  .dl a.ds-btn { font-size: 15px; padding: 12px 28px; }
+
+  footer { padding: 40px 24px 60px; text-align: center; color: var(--sub); font-size: 12px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">Note DS Lite</span>
+  <div class="right">
+    <select id="lang" aria-label="Language">
+      <option value="ko">한국어</option>
+      <option value="en">English</option>
+      <option value="ja">日本語</option>
+      <option value="zh">中文</option>
+    </select>
+    <a class="cta ds-btn ds-blue" href="https://github.com/ta09472/note-ds-lite-public/releases" target="_blank" data-i18n="다운로드">다운로드</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <h1 class="reveal in"><span data-i18n="생각은 짧다.">생각은 짧다.</span><br><span class="accent" data-i18n="400자면 충분하다.">400자면 충분하다.</span></h1>
+  <p class="sub reveal in" data-delay="1" data-i18n="단축키 한 번, 메뉴바에서 바로 열리는 퀵 노트. Note DS Lite.">단축키 한 번, 메뉴바에서 바로 열리는 퀵 노트. Note DS Lite.</p>
+  <div class="mock ds-shadow reveal in" data-delay="2">
+    <div class="ds-pop"><div class="inner">
+      <div class="note"><span id="typed"></span><span class="caret"></span></div>
+      <div class="counter"><div class="bar"><b id="bar"></b></div><span id="count">0 / 400</span></div>
+    </div></div>
+  </div>
+  <div class="scroll-hint" data-i18n="↓ 스크롤">↓ 스크롤</div>
+</header>
+
+<div class="pin-wrap">
+  <div class="pin">
+    <h2 id="statement" data-i18n="노트 앱을 여는 시간에, 생각은 이미 도망간다.">노트 앱을 여는 시간에, 생각은 이미 도망간다.</h2>
+  </div>
+</div>
+
+<section class="features">
+  <div class="head reveal">
+    <h2 data-i18n="작지만, 다 있다.">작지만, 다 있다.</h2>
+    <p data-i18n="메뉴바 한 칸에 들어가는 완전한 노트.">메뉴바 한 칸에 들어가는 완전한 노트.</p>
+  </div>
+  <div class="grid">
+    <div class="card ds-shadow reveal"><div class="ds-pop"><div class="inner"><div class="icon"><svg width="26" height="26" viewBox="0 0 13 13" fill-rule="evenodd"><path d="M0 0h8v8H0zm2 2v4h4V2z"/><path d="M5 5h8v8H5zm2 2v4h4V7z"/></svg></div><h3 data-i18n="단축키 호출">단축키 호출</h3><p data-i18n="feat1">⌘⇧N 한 번으로 어디서든 즉시 호출. 앱 전환도, 새 창도 없이 쓰던 화면 위에 바로 뜹니다.</p></div></div></div>
+    <div class="card ds-shadow reveal" data-delay="1"><div class="ds-pop"><div class="inner"><div class="icon"><span class="txt">400</span></div><h3 data-i18n="400자 제한">400자 제한</h3><p data-i18n="feat2">제한은 기능입니다. 길게 쓰지 않으니 부담 없이 열고, 부담 없이 닫습니다. 글자수 바가 실시간으로 채워집니다.</p></div></div></div>
+    <div class="card ds-shadow reveal" data-delay="2"><div class="ds-pop"><div class="inner"><div class="icon"><svg width="26" height="26" viewBox="0 0 13 13"><path d="M10 0h3v3h-3zM8 2h3v3H8zM6 4h3v3H6zM4 6h3v3H4zM2 8h3v3H2zM0 10h3v3H0z"/></svg></div><h3 data-i18n="그리기 & 손글씨 폰트">그리기 &amp; 손글씨 폰트</h3><p data-i18n="feat3">펜으로 쓱쓱 그리고, 나눔펜·독도체 같은 손글씨 폰트로 노트마다 다른 표정을 줍니다.</p></div></div></div>
+    <div class="card ds-shadow reveal"><div class="ds-pop"><div class="inner"><div class="icon"><span class="txt">M↓</span></div><h3 data-i18n="마크다운 에디터">마크다운 에디터</h3><p data-i18n="feat4">노션식 목록, 표, 이미지, 슬래시 메뉴까지. 퀵 노트지만 에디터는 진심입니다.</p></div></div></div>
+    <div class="card ds-shadow reveal" data-delay="1"><div class="ds-pop"><div class="inner"><div class="icon"><svg width="26" height="26" viewBox="0 0 13 13"><path d="M4 0h5v4h4v5H9v4H4V9H0V4h4z"/></svg></div><h3 data-i18n="DS 감성">DS 감성</h3><p data-i18n="feat5">픽토챗을 닮은 카드 프레임, 캘린더·시계 위젯, 도트 서체. 노트가 조금 귀여워도 되잖아요.</p></div></div></div>
+    <div class="card ds-shadow reveal" data-delay="2"><div class="ds-pop"><div class="inner"><div class="icon"><svg width="26" height="26" viewBox="0 0 13 13" fill-rule="evenodd"><path d="M0 0h13v9H0zm2 2v5h9V2z"/><path d="M6 9h1v2H6z"/><path d="M4 11h5v2H4z"/></svg></div><h3>mac · win · linux</h3><p data-i18n="feat6">x64와 arm64 모두 지원. 어느 데스크에서든 같은 노트를 씁니다.</p></div></div></div>
+  </div>
+</section>
+
+<section class="flow">
+  <div class="head reveal">
+    <h2 data-i18n="퀵 노트는 시작일 뿐">퀵 노트는 시작일 뿐</h2>
+    <p data-i18n="적고, 칠하고, 쓰고, 그린다.">적고, 칠하고, 쓰고, 그린다.</p>
+  </div>
+  <div class="steps">
+    <div class="step reveal">
+      <div class="demo ds-shadow"><div class="ds-pop"><div class="inner"><video src="assets/demo-quick.mp4" autoplay muted loop playsinline></video></div></div></div>
+      <div class="meta">
+        <span class="no">1</span>
+        <h3 data-i18n="퀵 노트로 잡기">퀵 노트로 잡기</h3>
+        <p data-i18n="step1">단축키로 띄워서 생각부터 적습니다.</p>
+      </div>
+    </div>
+    <div class="step reveal">
+      <div class="demo ds-shadow"><div class="ds-pop"><div class="inner"><video src="assets/demo-bg.mp4" autoplay muted loop playsinline></video></div></div></div>
+      <div class="meta">
+        <span class="no">2</span>
+        <h3 data-i18n="배경 입히기">배경 입히기</h3>
+        <p data-i18n="step2">메쉬 그라디언트와 팔레트로 노트마다 다른 카드.</p>
+      </div>
+    </div>
+    <div class="step reveal">
+      <div class="demo ds-shadow"><div class="ds-pop"><div class="inner"><video src="assets/demo-write.mp4" autoplay muted loop playsinline></video></div></div></div>
+      <div class="meta">
+        <span class="no">3</span>
+        <h3 data-i18n="본문 채우기">본문 채우기</h3>
+        <p data-i18n="step3">목록·표·이미지까지, 마크다운으로 이어서 씁니다.</p>
+      </div>
+    </div>
+    <div class="step reveal">
+      <div class="demo ds-shadow"><div class="ds-pop"><div class="inner"><video src="assets/demo-draw.mp4" autoplay muted loop playsinline></video></div></div></div>
+      <div class="meta">
+        <span class="no">4</span>
+        <h3 data-i18n="그림 얹기">그림 얹기</h3>
+        <p data-i18n="step4">픽셀 펜으로 낙서를 얹으면 노트가 완성.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="four">
+  <div class="num reveal">400</div>
+  <p class="reveal" data-delay="1" data-i18n="트윗 한 개 반. 포스트잇 세 장. 생각 하나를 담기에 딱 좋은 크기입니다.">트윗 한 개 반. 포스트잇 세 장. 생각 하나를 담기에 딱 좋은 크기입니다.</p>
+</section>
+
+<section class="dl">
+  <h2 class="reveal" data-i18n="지금, 메뉴바에 놓아보세요.">지금, 메뉴바에 놓아보세요.</h2>
+  <p class="reveal" data-delay="1" data-i18n="무료. 가입 없음. 단축키면 끝.">무료. 가입 없음. 단축키면 끝.</p>
+  <div class="btns reveal" data-delay="2">
+    <a class="ds-btn ds-blue" href="https://github.com/ta09472/note-ds-lite-public/releases" target="_blank" data-i18n="다운로드">다운로드</a>
+    <a class="ds-btn" href="https://github.com/ta09472/note-ds-lite-public" target="_blank" data-i18n="GitHub 보기">GitHub 보기</a>
+  </div>
+</section>
+
+<footer>© 2026 Note DS Lite · beomsu</footer>
+
+<script>
+  /* ── i18n — 앱과 동일한 방식: 한국어 원문이 키, 미번역은 원문 폴백 ── */
+  const DICT = {
+    en: {
+      '다운로드': 'Download',
+      '생각은 짧다.': 'Thoughts are short.',
+      '400자면 충분하다.': '400 characters are enough.',
+      '단축키 한 번, 메뉴바에서 바로 열리는 퀵 노트. Note DS Lite.': 'One shortcut — a quick note straight from your menu bar. Note DS Lite.',
+      '↓ 스크롤': '↓ Scroll',
+      '노트 앱을 여는 시간에, 생각은 이미 도망간다.': 'By the time your notes app opens, the thought is already gone.',
+      '작지만, 다 있다.': 'Small, but complete.',
+      '메뉴바 한 칸에 들어가는 완전한 노트.': 'A complete notebook that fits in one menu-bar slot.',
+      '단축키 호출': 'One-shortcut summon',
+      '400자 제한': '400-char limit',
+      '그리기 & 손글씨 폰트': 'Drawing & handwriting fonts',
+      '마크다운 에디터': 'Markdown editor',
+      'DS 감성': 'DS vibes',
+      feat1: 'Summon it anywhere with a single ⌘⇧N. No app switching, no new window — it appears right over what you were doing.',
+      feat2: 'The limit is a feature. You never write long, so you open it lightly and close it lightly. The character bar fills in real time.',
+      feat3: 'Doodle with a pen and give each note its own look with handwriting fonts like Nanum Pen and Dokdo.',
+      feat4: "Notion-style lists, tables, images, and a slash menu. It's a quick note, but the editor is serious.",
+      feat5: 'PictoChat-style card frames, calendar & clock widgets, pixel type. Notes are allowed to be a little cute.',
+      feat6: 'Supports both x64 and arm64. The same notes at every desk.',
+      '퀵 노트는 시작일 뿐': 'The quick note is just the start',
+      '적고, 칠하고, 쓰고, 그린다.': 'Capture, paint, write, draw.',
+      '커피 원두 주문하기': 'Order coffee beans',
+      '퀵 노트로 잡기': 'Catch it in a quick note',
+      step1: 'Pop it open with the shortcut and get the thought down first.',
+      '무제': 'Untitled',
+      '배경 입히기': 'Give it a background',
+      step2: 'Mesh gradients and a palette — every note its own card.',
+      '오늘 할 일': 'To-do today',
+      '시안 정리': 'Tidy the mockups',
+      '릴리스 노트 쓰기': 'Write release notes',
+      '본문 채우기': 'Fill in the body',
+      step3: 'Keep writing in Markdown — lists, tables, even images.',
+      '그림 얹기': 'Top it with a drawing',
+      step4: 'Add a pixel-pen doodle and the note is complete.',
+      '트윗 한 개 반. 포스트잇 세 장. 생각 하나를 담기에 딱 좋은 크기입니다.': 'A tweet and a half. Three sticky notes. Just the right size for one thought.',
+      '지금, 메뉴바에 놓아보세요.': 'Put it in your menu bar, now.',
+      '무료. 가입 없음. 단축키면 끝.': 'Free. No sign-up. Just one shortcut.',
+      'GitHub 보기': 'View on GitHub',
+      _typed: 'Oh, let me jot this down before I forget —',
+      _title: 'Note DS Lite — 400-char quick notes'
+    },
+    ja: {
+      '다운로드': 'ダウンロード',
+      '생각은 짧다.': '思考は短い。',
+      '400자면 충분하다.': '400字あれば十分。',
+      '단축키 한 번, 메뉴바에서 바로 열리는 퀵 노트. Note DS Lite.': 'ショートカット一回、メニューバーからすぐ開くクイックノート。Note DS Lite。',
+      '↓ 스크롤': '↓ スクロール',
+      '노트 앱을 여는 시간에, 생각은 이미 도망간다.': 'ノートアプリを開くうちに、思考はもう逃げていく。',
+      '작지만, 다 있다.': '小さくても、全部ある。',
+      '메뉴바 한 칸에 들어가는 완전한 노트.': 'メニューバー一枠に収まる完全なノート。',
+      '단축키 호출': 'ショートカット呼び出し',
+      '400자 제한': '400字制限',
+      '그리기 & 손글씨 폰트': '手描き＆手書きフォント',
+      '마크다운 에디터': 'Markdownエディタ',
+      'DS 감성': 'DSの感性',
+      feat1: '⌘⇧N ひとつでどこでも即座に呼び出し。アプリ切替も新しいウィンドウもなく、今の画面の上にそのまま現れます。',
+      feat2: '制限は機能です。長く書かないから、気軽に開いて気軽に閉じられる。文字数バーがリアルタイムで埋まります。',
+      feat3: 'ペンでさっと描いて、ナヌムペン・独島体などの手書きフォントでノートごとに違う表情を。',
+      feat4: 'Notion式リスト、表、画像、スラッシュメニューまで。クイックノートでも、エディタは本気です。',
+      feat5: 'ピクトチャット風のカードフレーム、カレンダー・時計ウィジェット、ドットフォント。ノートが少しかわいくてもいいでしょう？',
+      feat6: 'x64とarm64の両方に対応。どのデスクでも同じノートを。',
+      '퀵 노트는 시작일 뿐': 'クイックノートは始まりにすぎない',
+      '적고, 칠하고, 쓰고, 그린다.': '書き留めて、塗って、書いて、描く。',
+      '커피 원두 주문하기': 'コーヒー豆を注文する',
+      '퀵 노트로 잡기': 'クイックノートでキャッチ',
+      step1: 'ショートカットで開いて、まず思考を書き留める。',
+      '무제': '無題',
+      '배경 입히기': '背景をまとわせる',
+      step2: 'メッシュグラデーションとパレットで、ノートごとに違うカードに。',
+      '오늘 할 일': '今日やること',
+      '시안 정리': '案の整理',
+      '릴리스 노트 쓰기': 'リリースノートを書く',
+      '본문 채우기': '本文を埋める',
+      step3: 'リスト・表・画像まで、Markdownで書き続ける。',
+      '그림 얹기': '絵をのせる',
+      step4: 'ピクセルペンで落書きをのせれば完成。',
+      '트윗 한 개 반. 포스트잇 세 장. 생각 하나를 담기에 딱 좋은 크기입니다.': 'ツイート1.5個分。付箋3枚。思考ひとつにちょうどいいサイズです。',
+      '지금, 메뉴바에 놓아보세요.': '今すぐ、メニューバーへ。',
+      '무료. 가입 없음. 단축키면 끝.': '無料。登録不要。ショートカットひとつ。',
+      'GitHub 보기': 'GitHubで見る',
+      _typed: 'あ、忘れる前にメモしておこう —',
+      _title: 'Note DS Lite — 400字クイックノート'
+    },
+    zh: {
+      '다운로드': '下载',
+      '생각은 짧다.': '想法很短。',
+      '400자면 충분하다.': '400字就够了。',
+      '단축키 한 번, 메뉴바에서 바로 열리는 퀵 노트. Note DS Lite.': '一个快捷键，从菜单栏立即打开的快速笔记。Note DS Lite。',
+      '↓ 스크롤': '↓ 滚动',
+      '노트 앱을 여는 시간에, 생각은 이미 도망간다.': '打开笔记应用的那几秒，想法已经溜走了。',
+      '작지만, 다 있다.': '麻雀虽小，五脏俱全。',
+      '메뉴바 한 칸에 들어가는 완전한 노트.': '一个菜单栏格子装下的完整笔记。',
+      '단축키 호출': '快捷键呼出',
+      '400자 제한': '400字限制',
+      '그리기 & 손글씨 폰트': '涂鸦与手写字体',
+      '마크다운 에디터': 'Markdown 编辑器',
+      'DS 감성': 'DS 情怀',
+      feat1: '一个 ⌘⇧N 随时呼出。无需切换应用、无需新窗口，直接浮现在当前画面上。',
+      feat2: '限制本身就是功能。不用长篇大论，随手打开随手关闭。字数条实时填充。',
+      feat3: '用画笔随手涂鸦，再配上 Nanum Pen、独岛体等手写字体，每条笔记都有自己的表情。',
+      feat4: 'Notion 式列表、表格、图片、斜杠菜单一应俱全。虽是快速笔记，编辑器却毫不含糊。',
+      feat5: '神似 PictoChat 的卡片边框、日历时钟小组件、点阵字体。笔记可爱一点也无妨嘛。',
+      feat6: '同时支持 x64 与 arm64。在任何一张桌子上写同样的笔记。',
+      '퀵 노트는 시작일 뿐': '快速笔记只是开始',
+      '적고, 칠하고, 쓰고, 그린다.': '记下、上色、书写、涂画。',
+      '커피 원두 주문하기': '订购咖啡豆',
+      '퀵 노트로 잡기': '用快速笔记抓住它',
+      step1: '快捷键呼出，先把想法记下来。',
+      '무제': '无标题',
+      '배경 입히기': '换上背景',
+      step2: '网格渐变加调色板，每条笔记都是不同的卡片。',
+      '오늘 할 일': '今日待办',
+      '시안 정리': '整理设计稿',
+      '릴리스 노트 쓰기': '写发布说明',
+      '본문 채우기': '填充正文',
+      step3: '列表、表格、图片，用 Markdown 继续写。',
+      '그림 얹기': '添上一笔涂鸦',
+      step4: '用像素画笔涂一笔，笔记就完成了。',
+      '트윗 한 개 반. 포스트잇 세 장. 생각 하나를 담기에 딱 좋은 크기입니다.': '一条半推文，三张便利贴。装下一个想法刚刚好。',
+      '지금, 메뉴바에 놓아보세요.': '现在就放进菜单栏吧。',
+      '무료. 가입 없음. 단축키면 끝.': '免费。无需注册。一键即用。',
+      'GitHub 보기': '查看 GitHub',
+      _typed: '啊，趁没忘赶紧记下来 —',
+      _title: 'Note DS Lite — 400字快速笔记'
+    }
+  };
+  const KO_TYPED = '아, 이거 까먹기 전에 적어두자 —';
+  const langSel = document.getElementById('lang');
+  const saved = localStorage.getItem('lang');
+  const auto = (navigator.language || 'ko').slice(0, 2);
+  const lang = saved || (DICT[auto] || auto === 'ko' ? auto : 'ko');
+  const cur = DICT[lang] ? lang : 'ko';
+  langSel.value = cur;
+  const t = (k) => (cur === 'ko' ? null : DICT[cur][k]) ?? null;
+
+  document.documentElement.lang = cur;
+  if (t('_title')) document.title = t('_title');
+  document.querySelectorAll('[data-i18n]').forEach((el) => {
+    const v = t(el.dataset.i18n);
+    if (v) el.textContent = v;
+  });
+  langSel.addEventListener('change', () => {
+    localStorage.setItem('lang', langSel.value);
+    location.reload(); // 앱과 동일 — 리로드로 적용
+  });
+
+  // reveal on scroll
+  const io = new IntersectionObserver(es => es.forEach(e => e.isIntersecting && e.target.classList.add('in')), { threshold: .18 });
+  document.querySelectorAll('.reveal:not(.in)').forEach(el => io.observe(el));
+
+  // hero typing demo
+  const text = t('_typed') ?? KO_TYPED;
+  const typed = document.getElementById('typed'), bar = document.getElementById('bar'), count = document.getElementById('count');
+  let i = 0;
+  (function type() {
+    if (i <= text.length) {
+      typed.textContent = text.slice(0, i);
+      bar.style.width = (i / 400 * 100 * 8) + '%'; // exaggerate for visibility
+      count.textContent = i + ' / 400';
+      i++; setTimeout(type, 90);
+    }
+  })();
+
+  // sticky statement — 공백 언어는 단어, ja/zh는 글자 단위로 점등
+  const st = document.getElementById('statement');
+  const src = st.textContent.trim();
+  const parts = src.includes(' ') ? src.split(' ') : [...src];
+  const joiner = src.includes(' ') ? ' ' : '';
+  st.innerHTML = parts.map(w => `<span class="word">${w}</span>`).join(joiner);
+  const words = st.querySelectorAll('.word');
+  const wrap = document.querySelector('.pin-wrap');
+  addEventListener('scroll', () => {
+    const r = wrap.getBoundingClientRect();
+    const p = Math.min(1, Math.max(0, -r.top / (r.height - innerHeight)));
+    const lit = Math.floor(p * (words.length + 1));
+    words.forEach((w, idx) => w.classList.toggle('lit', idx < lit));
+  }, { passive: true });
+</script>
+</body>
+</html>
