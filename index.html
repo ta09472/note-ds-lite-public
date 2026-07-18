@@ -263,6 +263,23 @@
   .dl .btns { margin-top: 40px; display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
   .dl a.ds-btn { font-size: 15px; padding: 12px 28px; }
 
+  /* ---------- 사용 기술 ---------- */
+  .stack { padding: 10vh 24px 8vh; max-width: 760px; margin: 0 auto; text-align: center; }
+  .stack h2 { font-size: clamp(20px, 3vw, 32px); font-weight: 700; margin-bottom: 40px; }
+  /* ds.css 크레딧 — 픽토챗 카드로 강조 */
+  .stack .hero-credit { display: block; text-decoration: none; color: inherit; margin: 0 auto 32px; max-width: 480px; }
+  .stack .hero-credit .inner { padding: 22px 20px; text-align: center; }
+  .stack .hero-credit .name { font-size: 22px; font-weight: 700; color: var(--ds-blue); }
+  .stack .hero-credit .desc { margin-top: 8px; font-size: 13px; color: var(--sub); line-height: 1.7; }
+  .stack .hero-credit .url { margin-top: 10px; font-size: 12px; color: #1d1d1f; text-decoration: underline; }
+  .stack .hero-credit:hover { transform: translate(-2px, -2px); }
+  .stack .chips { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  .stack .chips a {
+    text-decoration: none; color: #1d1d1f; font-size: 12px; font-weight: 700;
+    background: white; border: 2px solid var(--ds-ink); padding: 6px 12px;
+  }
+  .stack .chips a:hover { background: var(--ds-yellow); }
+
   footer { padding: 40px 24px 60px; text-align: center; color: var(--sub); font-size: 12px; }
 </style>
 </head>
@@ -369,6 +386,27 @@
   </div>
 </section>
 
+<section class="stack">
+  <h2 class="reveal" data-i18n="이런 기술로 만들었어요">이런 기술로 만들었어요</h2>
+  <a class="hero-credit ds-shadow reveal" href="https://github.com/spiritov/ds.css" target="_blank">
+    <span class="ds-pop" style="display:block"><span class="inner" style="display:block">
+      <span class="name">ds.css</span>
+      <span class="desc" style="display:block" data-i18n="ds-desc">이 앱과 사이트의 픽셀 프레임·버튼·팔레트 전부가 이 디자인 시스템에서 왔습니다. by spiritov</span>
+      <span class="url" style="display:block">github.com/spiritov/ds.css</span>
+    </span></span>
+  </a>
+  <div class="chips reveal" data-delay="1">
+    <a href="https://github.com/quiple/galmuri" target="_blank">Galmuri</a>
+    <a href="https://www.electronjs.org" target="_blank">Electron</a>
+    <a href="https://react.dev" target="_blank">React</a>
+    <a href="https://www.typescriptlang.org" target="_blank">TypeScript</a>
+    <a href="https://milkdown.dev" target="_blank">Milkdown</a>
+    <a href="https://tailwindcss.com" target="_blank">Tailwind CSS</a>
+    <a href="https://motion.dev" target="_blank">Motion</a>
+    <a href="https://electron-vite.org" target="_blank">electron-vite</a>
+  </div>
+</section>
+
 <footer>© 2026 Note DS Lite · beomsu</footer>
 
 <script>
@@ -413,6 +451,8 @@
       '지금, 메뉴바에 놓아보세요.': 'Put it in your menu bar, now.',
       '무료. 가입 없음. 단축키면 끝.': 'Free. No sign-up. Just one shortcut.',
       'GitHub 보기': 'View on GitHub',
+      '이런 기술로 만들었어요': 'Built with these',
+      'ds-desc': "Every pixel frame, button, and palette in this app and site comes from this design system. by spiritov",
       _typed: 'Oh, let me jot this down before I forget —',
       _title: 'Note DS Lite — 400-char quick notes'
     },
@@ -455,6 +495,8 @@
       '지금, 메뉴바에 놓아보세요.': '今すぐ、メニューバーへ。',
       '무료. 가입 없음. 단축키면 끝.': '無料。登録不要。ショートカットひとつ。',
       'GitHub 보기': 'GitHubで見る',
+      '이런 기술로 만들었어요': 'こんな技術で作りました',
+      'ds-desc': 'このアプリとサイトのピクセルフレーム・ボタン・パレットはすべてこのデザインシステム由来です。by spiritov',
       _typed: 'あ、忘れる前にメモしておこう —',
       _title: 'Note DS Lite — 400字クイックノート'
     },
@@ -497,6 +539,8 @@
       '지금, 메뉴바에 놓아보세요.': '现在就放进菜单栏吧。',
       '무료. 가입 없음. 단축키면 끝.': '免费。无需注册。一键即用。',
       'GitHub 보기': '查看 GitHub',
+      '이런 기술로 만들었어요': '用这些技术打造',
+      'ds-desc': '这个应用和网站的像素边框、按钮、调色板全部来自这个设计系统。by spiritov',
       _typed: '啊，趁没忘赶紧记下来 —',
       _title: 'Note DS Lite — 400字快速笔记'
     }
